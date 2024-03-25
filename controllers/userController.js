@@ -2,7 +2,7 @@ import User from "../models/userSchema.js";
 import bcrypt from "bcryptjs";
 import { sendMail } from "../utils/sendMail.js";
 import dotenv from "dotenv";
-import { generateRandomString } from "../utils/randomString.js";
+
 import jwt from "jsonwebtoken";
 
 dotenv.config();
@@ -61,7 +61,9 @@ export const loginUser = async (req, res) => {
     });
     findUser.token = token;
     await findUser.save();
-    res.status(200).json({ message: "User logged in successfully", token });
+    res
+      .status(200)
+      .json({ message: "User logged in successfully", token, data: findUser });
   } catch (error) {
     res.status(500).json({
       message: "Login failed",
@@ -90,12 +92,12 @@ export const forgotPassword = async (req, res) => {
     //Check if user exists in DB
     let userExists = await User.findOne({ email: req.body.email });
     if (userExists && req.body.email !== "") {
-      const tokenString = generateRandomString(20);
+      const tokenString = userExists.token;
       const mailId = req.body.email;
       //Reset Link
       const resetLink = `${process.env.RESET_LINK}?token=${tokenString}&email=${mailId}`;
 
-      const message = `<p>Hello ${userExists.username},</p>
+      const message = `<p>Hello ${userExists.firstName},</p>
           <p>
             You have requested to reset your password. Click the button below to
             reset it:
@@ -108,10 +110,7 @@ export const forgotPassword = async (req, res) => {
       await sendMail(req.body.email, message);
 
       //update the DB with Random string
-      await User.updateOne(
-        { email: req.body.email },
-        { randomString: tokenString }
-      );
+      await User.updateOne({ email: req.body.email }, { token: tokenString });
 
       //Status send
       res.status(201).send({
@@ -143,10 +142,10 @@ export const resetPassword = async (req, res) => {
           { email: req.body.email },
           { password: hashedPassword }
         );
-        await User.updateOne(
-          { email: req.body.email },
-          { $unset: { randomString: 1 } }
-        );
+        // await User.updateOne(
+        //   { email: req.body.email },
+        //   { $unset: { randomString: 1 } }
+        // );
         res.status(200).json({ message: "Updated successfully" });
       } else {
         res

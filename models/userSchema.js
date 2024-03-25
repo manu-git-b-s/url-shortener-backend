@@ -6,8 +6,8 @@ const userSchema = new mongoose.Schema(
     lastName: { type: String, required: true },
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
-    randomString: { type: String },
     role: { type: String },
+    token: { type: String },
   },
   { versionKey: false }
 );
